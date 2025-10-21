@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>动态登录密钥</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <style>
+    .key-container { transition: all 0.3s ease; }
+    .key-refresh { transform: scale(1.05); box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
+    <h1 class="text-2xl font-bold text-gray-800 mb-2 flex items-center justify-center">
+      <i class="fa fa-key text-blue-500 mr-3"></i>动态登录密钥
+    </h1>
+    <p class="text-gray-500 text-sm mb-8">每分钟自动更新，有效时长1分钟</p>
+
+    <!-- 密钥显示区域 -->
+    <div class="key-container bg-blue-50 rounded-xl p-6 mb-6">
+      <p class="text-gray-500 text-sm mb-2">当前密钥</p>
+      <p id="dynamicKey" class="text-6xl font-mono font-bold text-blue-600">0000</p>
+    </div>
+
+    <!-- 有效期信息 -->
+    <div class="flex justify-between text-sm text-gray-500 mb-8">
+      <div>
+        <p class="text-gray-400">生成时间</p>
+        <p id="generateTime">-</p>
+      </div>
+      <div>
+        <p class="text-gray-400">过期时间</p>
+        <p id="expireTime">-</p>
+      </div>
+    </div>
+
+    <!-- 刷新状态提示 -->
+    <p id="refreshTip" class="text-green-500 hidden">
+      <i class="fa fa-refresh fa-spin mr-1"></i> 密钥已刷新
+    </p>
+  </div>
+
+  <script>
+    // 关键修改：将接口路径改为服务器IP（47.93.9.23）
+    const KEY_API_URL = 'http://47.93.9.23:3000/api/dynamic-key';
+    let lastKey = '';
+
+    // 定时获取密钥（10秒一次）
+    function fetchDynamicKey() {
+      fetch(KEY_API_URL)
+        .then(res => {
+          if (!res.ok) throw new Error('密钥获取失败');
+          return res.json();
+        })
+        .then(data => {
+          const keyEl = document.getElementById('dynamicKey');
+          const generateTimeEl = document.getElementById('generateTime');
+          const expireTimeEl = document.getElementById('expireTime');
+          const tipEl = document.getElementById('refreshTip');
+          const containerEl = document.querySelector('.key-container');
+
+          if (data.key !== lastKey) {
+            lastKey = data.key;
+            keyEl.textContent = data.key;
+            generateTimeEl.textContent = data.generateTime;
+            expireTimeEl.textContent = data.expireTime;
+            
+            containerEl.classList.add('key-refresh');
+            tipEl.classList.remove('hidden');
+            setTimeout(() => {
+              containerEl.classList.remove('key-refresh');
+              tipEl.classList.add('hidden');
+            }, 1000);
+          }
+        })
+        .catch(err => {
+          console.error('密钥获取错误:', err);
+          setTimeout(fetchDynamicKey, 3000);
+        });
+    }
+
+    fetchDynamicKey();
+    setInterval(fetchDynamicKey, 10000);
+  </script>
+</body>
+</html>
